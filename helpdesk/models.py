@@ -495,6 +495,15 @@ class Ticket(models.Model):
                     'follow-ups left for this task.'),
     )
 
+    submitter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        help_text=_('The submitter will receive an email for all public '
+                    'follow-ups left for this task.'),
+    )
+
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -747,11 +756,7 @@ class Ticket(models.Model):
     can_be_resolved = property(_can_be_resolved)
 
     def get_submitter_userprofile(self):
-        User = get_user_model()
-        try:
-            return User.objects.get(email=self.submitter_email)
-        except User.DoesNotExist:
-            return None
+        return self.submitter
 
     class Meta:
         get_latest_by = "created"

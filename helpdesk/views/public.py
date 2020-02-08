@@ -8,6 +8,7 @@ views/public.py - All public facing views, eg non-staff (no authentication
 """
 import logging
 
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import (
     ObjectDoesNotExist, PermissionDenied, ImproperlyConfigured,
 )
@@ -96,7 +97,7 @@ class BaseCreateTicketView(abstract_views.AbstractCreateTicketMixin, FormView):
             # This submission is spam. Let's not save it.
             return render(request, template_name='helpdesk/public_spam.html')
         else:
-            ticket = form.save()
+            ticket = form.save(self.request.user)
             try:
                 return HttpResponseRedirect('%s?ticket=%s&email=%s&key=%s' % (
                     reverse('helpdesk:public_view'),
@@ -133,11 +134,11 @@ class SuccessIframeView(TemplateView):
         return super().dispatch(*args, **kwargs)
 
 
-class CreateTicketView(BaseCreateTicketView):
+class CreateTicketView(BaseCreateTicketView, LoginRequiredMixin):
     template_name = 'helpdesk/public_create_ticket.html'
 
 
-class Homepage(CreateTicketView):
+class Homepage(CreateTicketView, LoginRequiredMixin):
     template_name = 'helpdesk/public_homepage.html'
 
     def get_context_data(self, **kwargs):

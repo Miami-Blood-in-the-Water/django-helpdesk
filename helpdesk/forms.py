@@ -214,7 +214,6 @@ class AbstractTicketForm(CustomFieldMixin, forms.Form):
 
         ticket = Ticket(
             title=self.cleaned_data['title'],
-            submitter_email=self.cleaned_data['submitter_email'],
             created=timezone.now(),
             status=Ticket.OPEN_STATUS,
             queue=queue,
@@ -280,13 +279,6 @@ class TicketForm(AbstractTicketForm):
     """
     Ticket Form creation for registered users.
     """
-    submitter_email = forms.EmailField(
-        required=False,
-        label=_('Submitter E-Mail Address'),
-        widget=forms.TextInput(attrs={'class': 'form-control', 'type': 'email'}),
-        help_text=_('This e-mail address will receive copies of all public '
-                    'updates to this ticket.'),
-    )
     assigned_to = forms.ChoiceField(
         widget=(
             forms.Select(attrs={'class': 'form-control'})
@@ -317,7 +309,7 @@ class TicketForm(AbstractTicketForm):
         self.fields['assigned_to'].choices = [('', '--------')] + [(u.id, u.get_username()) for u in assignable_users]
         self._add_form_custom_fields()
 
-    def save(self, user=None):
+    def save(self, user):
         """
         Writes and returns a Ticket() object
         """
@@ -329,6 +321,8 @@ class TicketForm(AbstractTicketForm):
                 ticket.assigned_to = u
             except User.DoesNotExist:
                 ticket.assigned_to = None
+        ticket.submitter = user
+        ticket.submitter_email = user.email
         ticket.save()
 
         self._create_custom_fields(ticket)
@@ -355,12 +349,6 @@ class PublicTicketForm(AbstractTicketForm):
     """
     Ticket Form creation for all users (public-facing).
     """
-    submitter_email = forms.EmailField(
-        widget=forms.TextInput(attrs={'class': 'form-control', 'type': 'email'}),
-        required=True,
-        label=_('Your E-Mail Address'),
-        help_text=_('We will e-mail you when your ticket is updated.'),
-    )
 
     def __init__(self, hidden_fields=(), readonly_fields=(), *args, **kwargs):
         """
@@ -412,13 +400,15 @@ class PublicTicketForm(AbstractTicketForm):
             # get the queue user entered
             return Queue.objects.get(id=int(self.cleaned_data['queue']))
 
-    def save(self):
+    def save(self, user):
         """
         Writes and returns a Ticket() object
         """
         ticket, queue = self._create_ticket()
         if queue.default_owner and not ticket.assigned_to:
             ticket.assigned_to = queue.default_owner
+        ticket.submitter = user
+        ticket.submitter_email = user.email
         ticket.save()
 
         self._create_custom_fields(ticket)

@@ -55,7 +55,7 @@ class DatatablesTicketSerializer(serializers.ModelSerializer):
             return ("None")
 
     def get_submitter(self, obj):
-        return obj.submitter_email
+        return obj.submitter.name
 
     def get_time_spent(self, obj):
         return format_time_spent(obj.time_spent)
